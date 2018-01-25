@@ -138,6 +138,65 @@ public class FurnitureentityFacadeREST extends AbstractFacade<Furnitureentity> {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
     }
+    
+    //#viewfurniturebycategorytask4a - retrieve a list of furniture by category
+    //this function is used in the FurnitureCategoryServlet
+    @GET
+    @Path("getFurnitureListByCategory")
+    @Produces("application/json")
+    public Response getFurnitureListByCategory(@QueryParam("countryID") Long countryID, @QueryParam("category") String category) {
+        System.out.println("RESTful: getFurnitureListByCategory() called with countryID " + countryID + " and category " + category);
+
+        try {
+            List<Furniture> list = new ArrayList<>();
+            String stmt = "";
+            PreparedStatement ps;
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+
+            if (countryID == null) {
+                stmt = "SELECT i.ID as id, i.NAME as name, f.IMAGEURL as imageURL, i.SKU as sku, i.DESCRIPTION as description, i.TYPE as type, i._LENGTH as length, i.WIDTH as width, i.HEIGHT as height, i.CATEGORY as category FROM itementity i, furnitureentity f where i.ID=f.ID and i.ISDELETED=FALSE and i.CATEGORY=?;";
+                ps = conn.prepareStatement(stmt);
+                ps.setString(1, category);
+            } else {
+                stmt = "SELECT i.ID as id, i.NAME as name, f.IMAGEURL as imageURL, i.SKU as sku, i.DESCRIPTION as description, i.TYPE as type, i._LENGTH as length, i.WIDTH as width, i.HEIGHT as height, i.CATEGORY as category, ic.RETAILPRICE as price FROM itementity i, furnitureentity f, item_countryentity ic where i.ID=f.ID and i.ID=ic.ITEM_ID and i.ISDELETED=FALSE and ic.COUNTRY_ID=? and i.CATEGORY=?;";
+                ps = conn.prepareStatement(stmt);
+                ps.setLong(1, countryID);
+                ps.setString(2, category);
+            }
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Furniture f = new Furniture();
+                f.setId(rs.getLong("id"));
+                f.setName(rs.getString("name"));
+                f.setImageUrl(rs.getString("imageURL"));
+                f.setSKU(rs.getString("sku"));
+                f.setDescription(rs.getString("description"));
+                f.setType(rs.getString("type"));
+                f.setWidth(rs.getInt("width"));
+                f.setHeight(rs.getInt("height"));
+                f.setLength(rs.getInt("length"));
+                f.setCategory(rs.getString("category"));
+                if (countryID != null) {
+                    f.setPrice(rs.getDouble("price"));
+                }
+                list.add(f);
+            }
+            GenericEntity<List<Furniture>> entity = new GenericEntity<List<Furniture>>(list) {
+            };
+            return Response
+                    .status(200)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Headers", "origin, content-type, accept, authorization")
+                    .header("Access-Control-Allow-Credentials", "true")
+                    .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+                    .header("Access-Control-Max-Age", "1209600")
+                    .entity(entity)
+                    .build();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+    }
 
     @Override
     protected EntityManager getEntityManager() {
