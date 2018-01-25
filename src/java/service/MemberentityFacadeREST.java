@@ -13,6 +13,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,6 +68,8 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
     public void remove(@PathParam("id") Long id) {
         super.remove(super.find(id));
     }
+    
+    
 
     @GET
     @Path("members")
@@ -85,7 +88,125 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
         list2.add(list.get(0));
         return list;
     }
+    
+/**
+     * updateMember REST API
+     * 
+     * @param member
+     * @param password
+     * @return 
+     * tutorial: http://howtodoinjava.com/jersey/jersey-restful-client-examples/
+     * http://alvinalexander.com/blog/post/jdbc/sample-jdbc-preparedstatement-sql-update
+     */
+    @PUT
+    @Path("updatemember")
+    @Consumes("application/json")
+    @Produces("application/json")
+    public Response updateMember(Member member, @QueryParam("password") String password) {
+        try {            
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+            
+            if (password != null) {
+                String passStmt = "SELECT PASSWORDSALT FROM memberentity m WHERE m.EMAIL=?";
+                PreparedStatement passPs = conn.prepareStatement(passStmt);
+                passPs.setString(1, member.getEmail());
+                ResultSet rs = passPs.executeQuery();
+                rs.next();
+                String passwordSalt = rs.getString("PASSWORDSALT");
+                String passwordHash = generatePasswordHash(passwordSalt, password);
+                
+                String stmt = "UPDATE memberentity SET NAME = ?, PHONE = ?, ADDRESS = ?, SECURITYQUESTION = ?, SECURITYANSWER = ?, AGE = ?, INCOME = ?, PASSWORDHASH = ?"
+                                                      + " WHERE EMAIL = ?";
 
+                PreparedStatement ps = conn.prepareStatement(stmt);
+                ps.setString(1, member.getName()); 
+                ps.setString(2, member.getPhone());
+                ps.setString(3, member.getAddress());
+                ps.setInt(4, member.getSecurityQuestion());
+                ps.setString(5, member.getSecurityAnswer());
+                ps.setInt(6, member.getAge());
+                ps.setInt(7, member.getIncome());
+                ps.setString(8, passwordHash);
+                ps.setString(9, member.getEmail());
+
+                int updates = ps.executeUpdate();
+                ps.close();                      
+            } else {
+                String stmt = "UPDATE memberentity SET NAME = ?, PHONE = ?, ADDRESS = ?, SECURITYQUESTION = ?, SECURITYANSWER = ?, AGE = ?, INCOME = ? "
+                                                      + " WHERE EMAIL = ?";
+
+                PreparedStatement ps = conn.prepareStatement(stmt);
+                ps.setString(1, member.getName()); 
+                ps.setString(2, member.getPhone());
+                ps.setString(3, member.getAddress());
+                ps.setInt(4, member.getSecurityQuestion());
+                ps.setString(5, member.getSecurityAnswer());
+                ps.setInt(6, member.getAge());
+                ps.setInt(7, member.getIncome());
+                ps.setString(8, member.getEmail());
+
+                int updates = ps.executeUpdate();
+                ps.close();                           
+            }
+            
+            return Response.status(200).build();
+        } catch (SQLException sqlex) {
+            return Response.status(999).build();
+        } 
+        catch (Exception ex) {
+            ex.printStackTrace();
+            return Response.status(Response.Status.BAD_REQUEST).entity(ex.getMessage()).build();            
+        }
+    }
+    
+    @GET
+    @Path("getmember")
+    @Consumes("application/json")
+    @Produces("application/json")
+    public Response getMember(@QueryParam("email") String email) {
+    try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+            String stmt = "SELECT * FROM Memberentity m WHERE m.EMAIL=?";
+            PreparedStatement ps = conn.prepareStatement(stmt);
+            ps.setString(1, email);
+            
+            ResultSet rs = ps.executeQuery();
+            rs.next();     
+            
+            /**
+             * These are the variables we need from the database query
+             * 
+             *  private Long id;
+             *  private String name;
+             *  private String email;
+             *  private Integer loyaltyPoints;
+             *  private Double cumulativeSpending;
+             *  private String phone;
+             *  private String address;
+             *  private String city;
+             *  private Integer securityQuestion;
+             *  private String securityAnswer;
+             *  private Integer age;
+             *  private Integer income; 
+             */
+            return Response.ok(new Member(rs.getLong("id"),
+                                          rs.getString("name"),
+                                          rs.getString("email"),
+                                          rs.getInt("loyaltypoints"),
+                                          rs.getDouble("cumulativespending"),
+                                          rs.getString("phone"),
+                                          rs.getString("address"),
+                                          rs.getString("city"),
+                                          rs.getInt("securityquestion"),
+                                          rs.getString("securityanswer"),
+                                          rs.getInt("age"),
+                                          rs.getInt("income")), MediaType.APPLICATION_JSON).build();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return Response.status(Response.Status.BAD_GATEWAY).build();
+        }
+    }
+    
     //this function is used by ECommerce_MemberLoginServlet
     @GET
     @Path("login")
