@@ -130,6 +130,7 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
                 ps.setString(9, member.getEmail());
 
                 int updates = ps.executeUpdate();
+                System.out.println("yo password works");
                 ps.close();                      
             } else {
                 String stmt = "UPDATE memberentity SET NAME = ?, PHONE = ?, ADDRESS = ?, SECURITYQUESTION = ?, SECURITYANSWER = ?, AGE = ?, INCOME = ? "
@@ -145,7 +146,10 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
                 ps.setInt(7, member.getIncome());
                 ps.setString(8, member.getEmail());
 
+                System.out.println("i can go until here");
+                System.out.println(ps);
                 int updates = ps.executeUpdate();
+                System.out.println("i can go until here too!!");
                 ps.close();                           
             }
             
