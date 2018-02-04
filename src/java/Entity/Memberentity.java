@@ -6,6 +6,9 @@
 package Entity;
 
 import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.util.Date;
 import java.util.List;
 import javax.persistence.Basic;
@@ -423,4 +426,32 @@ public class Memberentity implements Serializable {
         this.lineitementityList = lineitementityList;
     }
     
+    public boolean bindLineItemEntity(long lineitementityId) {
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+            /**
+             * memberentity_lineitementity
+             *   `MemberEntity_ID` bigint(20) NOT NULL,
+             *   `shoppingList_ID` bigint(20) NOT NULL,
+             */
+            
+            String stmt = "INSERT INTO memberentity_lineitementity "
+                    + "(MemberEntity_ID, shoppingList_ID)"
+                    + " VALUES "
+                    + "(?, ?)";
+            
+            PreparedStatement ps = conn.prepareStatement(stmt);
+            ps.setLong(1, this.id);
+            ps.setLong(2, lineitementityId);
+            
+            ps.executeUpdate();
+            
+            ps.close();
+            
+            return true;
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+            return false; // Didn't get through, so it's false
+        }
+    }
 }

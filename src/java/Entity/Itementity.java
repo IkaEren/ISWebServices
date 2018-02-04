@@ -6,6 +6,12 @@
 package Entity;
 
 import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import javax.persistence.Basic;
 import javax.persistence.CascadeType;
@@ -276,4 +282,36 @@ public class Itementity implements Serializable {
         return "Entity.Itementity[ id=" + id + " ]";
     }
     
+    public long addToDatabase(int quantity) throws ClassNotFoundException, SQLException {
+        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+        String stmt = "INSERT INTO lineitementity (QUANTITY, ITEM_ID)"
+                + " VALUES "
+                + "(?, ?)";
+        long lineitementityId;
+        try { // Auto Incremental Primary Key Retrieval
+        // http://stackoverflow.com/questions/7162989/sqlexception-generated-keys-not-requested-mysql
+        // Statement.RETURN_GENERATED_KEYS resolves the error below:
+        // java.sql.SQLException: Generated keys not requested. You need to specify Statement.RETURN_GENERATED_KEYS to Statement.executeUpdate() or Connection.prepareStatement().
+            PreparedStatement ps = conn.prepareStatement(stmt, Statement.RETURN_GENERATED_KEYS);
+            ps.setInt(1, quantity);
+            ps.setLong(2, this.id);
+            //ps.executeQuery();
+            // executeUpdate() Resolves the error below:
+            // java.sql.SQLException: Can not issue data manipulation statements with executeQuery().
+            ps.executeUpdate();
+            // Solves the error below?
+            // java.sql.SQLException: Can not issue data manipulation statements with executeQuery().
+            ResultSet rs = ps.getGeneratedKeys();
+            rs.next();
+            lineitementityId = rs.getLong(1);
+           
+            ps.close();
+            rs.close();
+            
+            return lineitementityId;
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
+            return -1;
+        }
+    }
 }

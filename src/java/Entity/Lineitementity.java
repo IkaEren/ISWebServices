@@ -6,6 +6,11 @@
 package Entity;
 
 import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import javax.persistence.Basic;
 import javax.persistence.CascadeType;
@@ -131,4 +136,30 @@ public class Lineitementity implements Serializable {
         this.memberentityList = memberentityList;
     }
 
+    public boolean addToSalesRecord(long salesRecordId) throws SQLException, ClassNotFoundException {
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+            // We will now add it to the composite key table
+            String salestmt = "INSERT INTO salesrecordentity_lineitementity "
+                    + "(SalesRecordEntity_ID, itemsPurchased_ID)"
+                    + " VALUES "
+                    + "(?, ?)"; 
+
+            PreparedStatement ps
+                    = conn.prepareStatement(salestmt, Statement.RETURN_GENERATED_KEYS);
+            ps.setLong(1, salesRecordId);
+            ps.setLong(2, this.id);
+
+            ps.executeUpdate();
+
+            // No need to retrieve any data back, let's go back to the
+            // Servlet
+            ps.close();
+            
+            return true;
+        } catch (Exception ex) {
+            System.out.println(ex.toString());
+            return false;
+        }
+    }
 }

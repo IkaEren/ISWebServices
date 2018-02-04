@@ -37,6 +37,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import java.sql.Statement;
 
 @Stateless
 @Path("entity.memberentity")
@@ -69,7 +70,41 @@ public class MemberentityFacadeREST extends AbstractFacade<Memberentity> {
         super.remove(super.find(id));
     }
     
-    
+    @PUT
+    @Path("addlineitem")
+    @Consumes("application/json")
+    @Produces("application/json")
+    public Response addLineItem(String lineitementityId, @QueryParam("memberId") long memberId) {
+        try {
+            Memberentity member = new Memberentity();
+            member.setId(memberId);
+            
+            if (member.bindLineItemEntity(Long.parseLong(lineitementityId))) {
+                return Response.ok("Sucesful Update!").build();
+            } else {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Can't update").build();
+            }
+//            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?user=root&password=12345"); 
+//            String stmt = "INSERT INTO memberentity_lineitementity "
+//                    + "(MemberEntity_ID, shoppingList_ID)"
+//                    + " VALUES "
+//                    + "(?, ?)";
+//            
+//            PreparedStatement ps = 
+//                    conn.prepareStatement(stmt, Statement.RETURN_GENERATED_KEYS);
+//            ps.setLong(1, memberId);
+//            ps.setLong(2, Long.parseLong(lineitementityId));
+//            
+//            ps.executeUpdate();
+//            ps.close();
+//            
+//            return Response.ok("Successful Update!").build();
+        } catch (Exception ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ex.toString()).build();
+        }
+    }
 
     @GET
     @Path("members")

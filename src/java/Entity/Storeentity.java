@@ -218,4 +218,30 @@ public class Storeentity implements Serializable {
             return -1;
         }
     }
+    
+    public void retrieveStoreData() {
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+            String stmt = "Select * from Storeentity s where isdeleted=FALSE AND ID=?";
+            
+            PreparedStatement ps = conn.prepareStatement(stmt);
+            ps.setLong(1, this.id);
+            
+            ResultSet rs = ps.executeQuery();
+            
+            // Set the key variables with this object
+            if (rs.next()) {
+                this.setAddress(rs.getString("address"));
+                this.setEmail(rs.getString("email"));
+                this.setName(rs.getString("name"));
+                this.setPostalcode("postalcode");
+                this.setTelephone(rs.getString("telephone"));
+            }
+            
+            rs.close();
+            ps.close();
+        } catch (Exception ex) {
+            System.out.println(ex.toString());
+        }
+    }
 }
