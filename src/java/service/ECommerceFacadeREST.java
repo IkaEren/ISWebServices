@@ -44,4 +44,24 @@ public class ECommerceFacadeREST {
     @Consumes("application/json")
     public void putJson(String content) {
     }
+    
+    @PUT
+    @Path("createECommerceTransactionRecord")
+    @Produces("application/json")
+    public Response createTransactionRecord(@QueryParam("memberId") long memberID,
+            @QueryParam("amountPaid") double amount, 
+            @QueryParam("countryID") long countryId) {
+        return null;
+    }
+    
+    @PUT
+    @Path("createECommerceLineItemRecord")
+    @Produces("application/json")
+    public Response createTransactionLineItemRecord(
+            @QueryParam("salesRecordID") long salesRecordId,
+            @QueryParam("itemEntityID") long itemEntityId,
+            @QueryParam("quantity") int quantity,
+            @QueryParam("countryID") long countryId) {
+        return null;
+    }
 }
