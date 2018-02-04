@@ -78,25 +78,37 @@ public class StoreentityFacadeREST extends AbstractFacade<Storeentity> {
         return list;
     }
 
-    //get the item quantity based on the storeID
+       //get the item quantity based on the storeID
     //this function is used by ECommerce_StockAvailability servlet
     @GET
     @Path("getQuantity")
     @Produces({"application/json"})
     public Response getItemQuantityOfStore(@QueryParam("storeID") Long storeID, @QueryParam("SKU") String SKU) {
         try {
-            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
-            String stmt = "SELECT sum(l.QUANTITY) as sum FROM storeentity s, warehouseentity w, storagebinentity sb, storagebinentity_lineitementity sbli, lineitementity l, itementity i where s.WAREHOUSE_ID=w.ID and w.ID=sb.WAREHOUSE_ID and sb.ID=sbli.StorageBinEntity_ID and sbli.lineItems_ID=l.ID and l.ITEM_ID=i.ID and s.ID=? and i.SKU=?";
-            PreparedStatement ps = conn.prepareStatement(stmt);
-            ps.setLong(1, storeID);
-            ps.setString(2, SKU);
-            ResultSet rs = ps.executeQuery();
-            int qty = 0;
-            if (rs.next()) {
-                qty = rs.getInt("sum");
+            Storeentity store = new Storeentity(storeID);
+            
+            int qty = store.getItemQuantity(SKU);
+            if (qty >= 0) {
+                return Response.ok(qty + "", MediaType.APPLICATION_JSON).build();
+            } else {
+                return Response.status(Response.Status.NOT_FOUND).build();
             }
-
-            return Response.ok(qty + "", MediaType.APPLICATION_JSON).build();
+            
+//            Connection conn = DatabaseEngine.getConnection();
+//            String stmt = "SELECT sum(l.QUANTITY) as sum FROM storeentity s, warehouseentity w, storagebinentity sb, storagebinentity_lineitementity sbli, lineitementity l, itementity i where s.WAREHOUSE_ID=w.ID and w.ID=sb.WAREHOUSE_ID and sb.ID=sbli.StorageBinEntity_ID and sbli.lineItems_ID=l.ID and l.ITEM_ID=i.ID and s.ID=? and i.SKU=?";
+//            
+//            PreparedStatement ps = conn.prepareStatement(stmt);
+//            ps.setLong(1, storeID);
+//            ps.setString(2, SKU);
+//            ResultSet rs = ps.executeQuery();
+//            int qty = 0;
+//            if (rs.next()) {
+//                qty = rs.getInt("sum");
+//
+//                return Response.ok(qty + "", MediaType.APPLICATION_JSON).build();
+//            } else {
+//                return Response.ok(0 + "", MediaType.APPLICATION_JSON).build();
+//            }
         } catch (Exception ex) {
             ex.printStackTrace();
             return Response.status(Response.Status.NOT_FOUND).build();

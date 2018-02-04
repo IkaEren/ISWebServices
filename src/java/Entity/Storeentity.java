@@ -6,6 +6,10 @@
 package Entity;
 
 import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -183,4 +187,35 @@ public class Storeentity implements Serializable {
         return "Entity.Storeentity[ id=" + id + " ]";
     }
     
+    public int getItemQuantity(String SKU) {
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+            String stmt = "SELECT sum(l.QUANTITY) as sum FROM storeentity s"
+                    + "                                     , warehouseentity w, "
+                    + "                                     storagebinentity sb, "
+                    + "                                     storagebinentity_lineitementity sbli, "
+                    + "                                     lineitementity l, "
+                    + "                                     itementity i "
+                    + "where s.WAREHOUSE_ID=w.ID and w.ID=sb.WAREHOUSE_ID "
+                    + "and sb.ID=sbli.StorageBinEntity_ID and "
+                    + "sbli.lineItems_ID=l.ID and l.ITEM_ID=i.ID and "
+                    + "s.ID=? and i.SKU=?";
+            
+            PreparedStatement ps = conn.prepareStatement(stmt);
+            ps.setLong(1, this.id);
+            ps.setString(2, SKU);
+            ResultSet rs = ps.executeQuery();
+            int qty = 0;
+            
+            if (rs.next()) {
+                qty = rs.getInt("sum");
+                return qty;
+            }
+            
+            return -1; // Nevertheless if it's here, there's a problem
+        } catch (Exception ex) {
+            System.out.println(ex.toString());
+            return -1;
+        }
+    }
 }

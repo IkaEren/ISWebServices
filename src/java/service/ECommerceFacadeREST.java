@@ -17,12 +17,17 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import Entity.ShoppingCartLineItem;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import javax.ws.rs.core.GenericEntity;
 
 @Path("commerce")
 public class ECommerceFacadeREST {
 
     @Context
     private UriInfo context;
+    private static final SimpleDateFormat simple = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public ECommerceFacadeREST() {
     }
@@ -48,20 +53,106 @@ public class ECommerceFacadeREST {
     @PUT
     @Path("createECommerceTransactionRecord")
     @Produces("application/json")
-    public Response createTransactionRecord(@QueryParam("memberId") long memberID,
-            @QueryParam("amountPaid") double amount, 
+    public Response createTransactionRecord(
+            String memberId,
+            @QueryParam("amountPaid") double finalPrice, 
             @QueryParam("countryID") long countryId) {
-        return null;
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+            
+            String stmt = "INSERT INTO salesrecordentity (AMOUNTDUE, "
+                    + "AMOUNTPAID, AMOUNTPAIDUSINGPOINTS, CREATEDDATE, "
+                    + "CURRENCY, LOYALTYPOINTSDEDUCTED, POSNAME, "
+                    + "RECEIPTNO, SERVEDBYSTAFF, MEMBER_ID, STORE_ID)"
+                    + " VALUES "
+                    + "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            
+            //http://stackoverflow.com/questions/7162989/sqlexception-generated-keys-not-requested-mysql
+            PreparedStatement ps = conn.prepareStatement(stmt, Statement.RETURN_GENERATED_KEYS);
+            ps.setDouble(1, finalPrice);
+            ps.setDouble(2, finalPrice);
+            ps.setDouble(3, 0); // AMOUNTPAIDUSINGPOINTS -- Default 0.
+            ps.setTimestamp(4, new java.sql.Timestamp(System.currentTimeMillis()));
+            ps.setString(5, "SGD"); // CURRENCY -- Let's assume Default as SGD
+            ps.setInt(6, 0); // LOYALTYPOINTSDEDUCTED -- Let's assume Default as 0
+            ps.setString(7, null); // POSNAME -- There's no counter in ECommerce.. Set to null
+            ps.setString(8, null); // RECEIPTNO -- No physical receipt...
+            ps.setString(9, null); // SERVEDBYSTAFF -- No STAFF SERVING ECOMMERCE..
+            ps.setLong(10, Long.parseLong(memberId));
+            ps.setLong(11, 10001); // STORE_ID -- ECommerce -> 10001
+            
+            ps.executeUpdate();
+            ResultSet rs = ps.getGeneratedKeys();
+            rs.next();
+            
+            long recordId = rs.getLong(1);
+            
+            return Response.ok(String.valueOf(recordId)).build();
+        } catch (Exception ex) {
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
     }
     
-    @PUT
+@PUT
     @Path("createECommerceLineItemRecord")
     @Produces("application/json")
-    public Response createTransactionLineItemRecord(
+    public Response createECommerceLineItemRecord(
             @QueryParam("salesRecordID") long salesRecordId,
             @QueryParam("itemEntityID") long itemEntityId,
             @QueryParam("quantity") int quantity,
             @QueryParam("countryID") long countryId) {
-        return null;
+        /**
+         * Two Tables to update, 
+         * 
+         * salesrecordentity_lineitementity
+         * `SalesRecordEntity_ID` bigint(20) NOT NULL,
+         * `itemsPurchased_ID` bigint(20) NOT NULL,
+         * 
+         * lineitementity
+         * `ID` bigint(20) NOT NULL AUTO_INCREMENT,
+         * `PACKTYPE` varchar(255) DEFAULT NULL,
+         * `QUANTITY` int(11) DEFAULT NULL,
+         * `ITEM_ID` bigint(20) DEFAULT NULL,
+         */
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?user=root&password=12345");
+            
+            String stmt = "INSERT INTO lineitementity (QUANTITY, ITEM_ID)"
+                    + " VALUES "
+                    + "(?, ?)";
+
+            // Auto Incremental Primary Key Retrieval
+            // http://stackoverflow.com/questions/7162989/sqlexception-generated-keys-not-requested-mysql
+            // Statement.RETURN_GENERATED_KEYS resolves the error below:
+            // java.sql.SQLException: Generated keys not requested. You need to specify Statement.RETURN_GENERATED_KEYS to Statement.executeUpdate() or Connection.prepareStatement(). 
+            PreparedStatement ps = conn.prepareStatement(stmt, Statement.RETURN_GENERATED_KEYS);
+            ps.setInt(1, quantity);
+            ps.setLong(2, itemEntityId);
+
+            ps.executeUpdate();
+            ResultSet rs = ps.getGeneratedKeys();
+            rs.next();
+            
+            long lineitementityId = rs.getLong(1);
+            ps.close();
+            
+            String salestmt = "INSERT INTO salesrecordentity_lineitementity "
+                    + "(SalesRecordEntity_ID, itemsPurchased_ID)"
+                    + " VALUES "
+                    + "(?, ?)";
+            
+            PreparedStatement salesps = 
+                    conn.prepareStatement(salestmt, Statement.RETURN_GENERATED_KEYS);
+            salesps.setLong(1, salesRecordId);
+            salesps.setLong(2, lineitementityId);
+            
+            salesps.executeUpdate();  
+            salesps.close();
+            
+            return Response.ok(String.valueOf(lineitementityId)).build();
+        } catch (Exception ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(ex.toString()).build();
+        }
     }
 }
