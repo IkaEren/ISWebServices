@@ -110,7 +110,6 @@ public class Lineitementity implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof Lineitementity)) {
             return false;
         }
@@ -139,7 +138,6 @@ public class Lineitementity implements Serializable {
     public boolean addToSalesRecord(long salesRecordId) throws SQLException, ClassNotFoundException {
         try {
             Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
-            // We will now add it to the composite key table
             String salestmt = "INSERT INTO salesrecordentity_lineitementity "
                     + "(SalesRecordEntity_ID, itemsPurchased_ID)"
                     + " VALUES "
@@ -151,11 +149,8 @@ public class Lineitementity implements Serializable {
             ps.setLong(2, this.id);
 
             ps.executeUpdate();
-
-            // No need to retrieve any data back, let's go back to the
-            // Servlet
             ps.close();
-            
+
             return true;
         } catch (Exception ex) {
             System.out.println(ex.toString());

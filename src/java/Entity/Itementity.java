@@ -288,19 +288,13 @@ public class Itementity implements Serializable {
                 + " VALUES "
                 + "(?, ?)";
         long lineitementityId;
-        try { // Auto Incremental Primary Key Retrieval
+        try {
         // http://stackoverflow.com/questions/7162989/sqlexception-generated-keys-not-requested-mysql
-        // Statement.RETURN_GENERATED_KEYS resolves the error below:
-        // java.sql.SQLException: Generated keys not requested. You need to specify Statement.RETURN_GENERATED_KEYS to Statement.executeUpdate() or Connection.prepareStatement().
             PreparedStatement ps = conn.prepareStatement(stmt, Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, quantity);
             ps.setLong(2, this.id);
-            //ps.executeQuery();
-            // executeUpdate() Resolves the error below:
-            // java.sql.SQLException: Can not issue data manipulation statements with executeQuery().
+
             ps.executeUpdate();
-            // Solves the error below?
-            // java.sql.SQLException: Can not issue data manipulation statements with executeQuery().
             ResultSet rs = ps.getGeneratedKeys();
             rs.next();
             lineitementityId = rs.getLong(1);
@@ -312,6 +306,34 @@ public class Itementity implements Serializable {
         } catch (SQLException ex) {
             System.out.println(ex.toString());
             return -1;
+        }
+    }
+    
+        public boolean deductAtDatabase(int quantity) throws ClassNotFoundException, SQLException {
+        Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?zeroDateTimeBehavior=convertToNull&user=root&password=12345");
+        
+        String stmt = "UPDATE country_ecommerce c, warehouseentity w, "
+                + "storagebinentity sb, storagebinentity_lineitementity sbli, "
+                + "lineitementity li, itementity i "
+                + "SET li.QUANTITY = li.QUANTITY - ? "
+                + "WHERE li.ITEM_ID=i.ID and sbli.lineItems_ID=li.ID and "
+                + "sb.ID=sbli.StorageBinEntity_ID and w.id=sb.WAREHOUSE_ID and "
+                + "c.warehouseentity_id=w.id and sb.type<>'Outbound' AND "
+                + "ITEM_ID=?";
+        
+        try { 
+            // http://stackoverflow.com/questions/7162989/sqlexception-generated-keys-not-requested-mysql
+            PreparedStatement ps = conn.prepareStatement(stmt, Statement.RETURN_GENERATED_KEYS);
+            ps.setInt(1, quantity);
+            ps.setLong(2, this.id);
+            ps.executeUpdate();
+            
+            ps.close();
+            
+            return true;
+        } catch (SQLException ex) {
+            System.out.println(ex.toString());
+            return false;
         }
     }
 }

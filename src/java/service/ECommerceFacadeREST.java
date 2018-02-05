@@ -20,6 +20,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import Entity.ShoppingCartLineItem;
+import static java.lang.System.out;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -89,8 +90,10 @@ public class ECommerceFacadeREST {
             rs.next();
             
             long recordId = rs.getLong(1);
-            
+            rs.close();
+            ps.close();
             return Response.ok(String.valueOf(recordId)).build();
+
         } catch (Exception ex) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
@@ -103,14 +106,18 @@ public class ECommerceFacadeREST {
             @QueryParam("salesRecordID") long salesRecordId,
             @QueryParam("itemEntityID") long itemEntityId,
             @QueryParam("quantity") int quantity,
-            @QueryParam("countryID") long countryId) throws SQLException { 
-        
-         try {
+            @QueryParam("countryID") long countryId) {
+        try {
             // Initialize the Lineitementity object first
-            Itementity item = new Itementity();
+            Itementity item = new Itementity(itemEntityId);
             Lineitementity lineitem = new Lineitementity();
             
-            item.setId(itemEntityId);
+            if (item.deductAtDatabase(quantity)) {
+                // Move on since we've deducted the stocks
+            } else {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Unable to deduct from database").build();
+            }
             
             // Then retrieve the primary key from the database after adding it
             lineitem.setId(item.addToDatabase(quantity));
@@ -118,69 +125,16 @@ public class ECommerceFacadeREST {
             // Bind it with the salesrecordentity
             lineitem.addToSalesRecord(salesRecordId);
             
-            if (lineitem.getId() > 0) {
-                return Response.ok(String.valueOf(lineitem.getId())).build();
-            } else {
-                return Response.status(Response.Status.CONFLICT)
-                        .entity(String.valueOf(lineitem.getId())).build();
-            }
+             if (lineitem.getId() > 0) { // I'm just scared, so we'll check it again
+                 return Response.status(Response.Status.OK)
+                         .entity("Success! ").build();
+             } else {
+                 return Response.status(Response.Status.CONFLICT)
+                         .entity(String.valueOf(lineitem.getId())).build();
+             }
         } catch (ClassNotFoundException | SQLException ex) {
              return Response.status(Response.Status.BAD_REQUEST)
                     .entity(ex.toString()).build();
         }
-        /**
-//         * Two Tables to update, 
-//         * 
-//         * salesrecordentity_lineitementity
-//         * `SalesRecordEntity_ID` bigint(20) NOT NULL,
-//         * `itemsPurchased_ID` bigint(20) NOT NULL,
-//         * 
-//         * lineitementity
-//         * `ID` bigint(20) NOT NULL AUTO_INCREMENT,
-//         * `PACKTYPE` varchar(255) DEFAULT NULL,
-//         * `QUANTITY` int(11) DEFAULT NULL,
-//         * `ITEM_ID` bigint(20) DEFAULT NULL,
-//         */
-//        try {
-//            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/islandfurniture-it07?user=root&password=12345");
-//            
-//            String stmt = "INSERT INTO lineitementity (QUANTITY, ITEM_ID)"
-//                    + " VALUES "
-//                    + "(?, ?)";
-//
-//            // Auto Incremental Primary Key Retrieval
-//            // http://stackoverflow.com/questions/7162989/sqlexception-generated-keys-not-requested-mysql
-//            // Statement.RETURN_GENERATED_KEYS resolves the error below:
-//            // java.sql.SQLException: Generated keys not requested. You need to specify Statement.RETURN_GENERATED_KEYS to Statement.executeUpdate() or Connection.prepareStatement(). 
-//            PreparedStatement ps = conn.prepareStatement(stmt, Statement.RETURN_GENERATED_KEYS);
-//            ps.setInt(1, quantity);
-//            ps.setLong(2, itemEntityId);
-//
-//            ps.executeUpdate();
-//            ResultSet rs = ps.getGeneratedKeys();
-//            rs.next();
-//            
-//            long lineitementityId = rs.getLong(1);
-//            ps.close();
-//            
-//            String salestmt = "INSERT INTO salesrecordentity_lineitementity "
-//                    + "(SalesRecordEntity_ID, itemsPurchased_ID)"
-//                    + " VALUES "
-//                    + "(?, ?)";
-//            
-//            PreparedStatement salesps = 
-//                    conn.prepareStatement(salestmt, Statement.RETURN_GENERATED_KEYS);
-//            salesps.setLong(1, salesRecordId);
-//            salesps.setLong(2, lineitementityId);
-//            
-//            salesps.executeUpdate();  
-//            salesps.close();
-//            
-//            return Response.ok(String.valueOf(lineitementityId)).build();
-//        } catch (Exception ex) {
-//            return Response.status(Response.Status.BAD_REQUEST)
-//                    .entity(ex.toString()).build();
-//        }
-//
     }
 }
